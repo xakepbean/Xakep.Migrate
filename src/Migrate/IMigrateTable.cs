@@ -8,8 +8,12 @@ namespace Xakep.Migrate
 {
     public interface IMigrateTable
     {
-        void Migrate<T>(string MigrateName = null, string tableName = null) where T : class;
+        void Migrate<T>(bool ObjectNameLowerCase = false) where T : class;
 
-        void Migrate(string MigrateName,Action<ModelBuilder> OnModelCreating);
+        void Migrate<T>(string MigrateName,bool ObjectNameLowerCase = false) where T : class;
+
+        void Migrate<T>(string MigrateName, string tableName, bool ObjectNameLowerCase = false) where T : class;
+
+        void Migrate(string MigrateName, Action<ModelBuilder> OnModelCreating, bool ObjectNameLowerCase = false);
     }
 }

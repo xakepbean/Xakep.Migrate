@@ -23,7 +23,7 @@ namespace sample1.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseNpgsql(ConnectionString);
+            optionsBuilder.UseSqlite(ConnectionString);
         }
 
         /// <summary>

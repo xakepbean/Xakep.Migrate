@@ -30,7 +30,7 @@ namespace sample1
             services.AddMvc();
 
  
-            services.AddMigrateTable(p => p.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")),
+            services.AddMigrateTable(p => p.UseSqlite(Configuration.GetConnectionString("DefaultConnection")),
                 "TestTable",
                 m =>
             {

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using System.Data;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Xakep.Migrate
 {
@@ -12,15 +13,8 @@ namespace Xakep.Migrate
     {
         public static IServiceCollection AddMigrateTable(this IServiceCollection services,Action<DbContextOptionsBuilder> optionBuilder)
         {
-            DbContextOptionsBuilder dbBuilder = new DbContextOptionsBuilder();
-            optionBuilder(dbBuilder);
-
-            services.AddOptions();
-            services.Configure<MigrateTableOptions>(opt => opt.DbOptions = dbBuilder.Options);
-
-            services.TryAddSingleton<IMigrateTable, MigrateTable>();
-
-            return services;
+            var Opt = AddOptions(services, optionBuilder);
+            return Opt.Services;
         }
 
         public static IServiceCollection AddMigrateTable(this IServiceCollection services,Action<DbContextOptionsBuilder> optionBuilder, string MigrateName, Action<ModelBuilder> OnModelCreating)
@@ -28,26 +22,47 @@ namespace Xakep.Migrate
             if (string.IsNullOrWhiteSpace(MigrateName) || OnModelCreating == null)
                 throw new Exception("not null");
 
-            DbContextOptionsBuilder dbBuilder = new DbContextOptionsBuilder();
-            optionBuilder(dbBuilder);
+            var Opt = AddOptions(services, optionBuilder);
+            services = Opt.Services;
 
-            var MigrateTable = new MigrateTable(new MigrateTableOptions() { DbOptions = dbBuilder.Options });
+            new MigrateTable(new MigrateTableOptions() {
+                DbOptions = Opt.Options
+            }).Migrate(MigrateName,OnModelCreating);
 
-            MigrateTable.Migrate(MigrateName,OnModelCreating);
-
-            return AddMigrateTable(services, optionBuilder);
+            return Opt.Services;
         }
-        
-        public static IServiceCollection AddMigrateTable<T>(this IServiceCollection services,Action<DbContextOptionsBuilder> optionBuilder, string MigrateName = null, string tableName = null) where T : class
+
+        public static IServiceCollection AddMigrateTable<T>(this IServiceCollection services, Action<DbContextOptionsBuilder> optionBuilder, bool ObjectNameLowerCase = false) where T : class
+        => AddMigrateTable<T>(services, optionBuilder, null, ObjectNameLowerCase);
+
+        public static IServiceCollection AddMigrateTable<T>(this IServiceCollection services, Action<DbContextOptionsBuilder> optionBuilder, string MigrateName, bool ObjectNameLowerCase = false) where T : class
+         => AddMigrateTable<T>(services, optionBuilder, null, null, ObjectNameLowerCase);
+
+        public static IServiceCollection AddMigrateTable<T>(this IServiceCollection services, Action<DbContextOptionsBuilder> optionBuilder, string MigrateName , string tableName, bool ObjectNameLowerCase = false) where T : class
         {
+            var Opt = AddOptions(services, optionBuilder);
+            services = Opt.Services;
+
+            new MigrateTable(new MigrateTableOptions()
+            {
+                DbOptions = Opt.Options
+            }).Migrate<T>(MigrateName, tableName, ObjectNameLowerCase);
+
+            return Opt.Services;
+        }
+
+        private static (IServiceCollection Services, DbContextOptions Options) AddOptions(this IServiceCollection services, Action<DbContextOptionsBuilder> optionBuilder)
+        {
+
             DbContextOptionsBuilder dbBuilder = new DbContextOptionsBuilder();
             optionBuilder(dbBuilder);
 
-            var MigrateTable = new MigrateTable(new MigrateTableOptions() { DbOptions = dbBuilder.Options });
+            services.AddOptions();
+            services.Configure<MigrateTableOptions>(opt => opt.DbOptions = dbBuilder.Options);
 
-            MigrateTable.Migrate<T>(MigrateName,tableName);
-
-            return AddMigrateTable(services, optionBuilder);
+            services.TryAddSingleton<IMigrateTable, MigrateTable>();
+            return (services, dbBuilder.Options);
         }
+
     }
 }

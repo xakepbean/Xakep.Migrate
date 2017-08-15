@@ -45,20 +45,6 @@ namespace Xakep.Migrate
 
         private MigrateTableOptions DbOptions { get; }
 
-        private void Init()
-        {
-            LoadedNamespaces = new HashSet<string>();
-            LoadedAssemblies = new HashSet<Assembly>();
-            AssemblyContext = new LoadContext();
-            foreach (var library in DependencyContext.Default.RuntimeLibraries)
-            {
-                foreach (var assemblyName in library.GetDefaultAssemblyNames(DependencyContext.Default))
-                {
-                    Load(assemblyName);
-                }
-            }
-        }
-
         public MigrateTable(IOptions<MigrateTableOptions> mtOptions)
         {
             Init();
@@ -70,7 +56,7 @@ namespace Xakep.Migrate
             DbOptions = mtOptions;
         }
 
-        public void Migrate(string MigrateName, Action<ModelBuilder> OnModelCreating)
+        public void Migrate(string MigrateName, Action<ModelBuilder> OnModelCreating, bool ObjectNameLowerCase = false)
         {
             EnsureCreated();
            
@@ -106,7 +92,8 @@ namespace Xakep.Migrate
 
 
                     var modelDiffer = serviceProvider.GetService<IMigrationsModelDiffer>();
-                    var sqlGenerator = serviceProvider.GetService<IMigrationsSqlGenerator>();
+                    var sqlGeneratorDependencies = serviceProvider.GetService<MigrationsSqlGeneratorDependencies>();
+                    var sqlGenerator = new Xakep.EntityFrameworkCore.Migrations.MigrationsSqlGenerator(sqlGeneratorDependencies, ObjectNameLowerCase);
 
                     var operations = modelDiffer.GetDifferences(lastModel, newModel);
                     if (operations.Count <= 0)
@@ -155,15 +142,33 @@ namespace Xakep.Migrate
             }
         }
 
-        public void Migrate<T>(string MigrateName = null, string tableName = null) where T : class
+        public void Migrate<T>(bool ObjectNameLowerCase = false) where T : class
+            => Migrate<T>(null, null, ObjectNameLowerCase);
+
+        public void Migrate<T>(string MigrateName, bool ObjectNameLowerCase = false) where T : class
+            => Migrate<T>(MigrateName, null, ObjectNameLowerCase);
+
+        public void Migrate<T>(string MigrateName, string tableName, bool ObjectNameLowerCase = false) where T : class
         {
             var vType = typeof(T);
             tableName = tableName ?? vType.Name;
             MigrateName = MigrateName ?? ModelSnapshotFilePrefix + tableName;
-            Migrate(MigrateName, m => m.Entity(vType).ToTable(tableName));
+            Migrate(MigrateName, m => m.Entity(vType).ToTable(tableName),ObjectNameLowerCase);
         }
 
-
+        private void Init()
+        {
+            LoadedNamespaces = new HashSet<string>();
+            LoadedAssemblies = new HashSet<Assembly>();
+            AssemblyContext = new LoadContext();
+            foreach (var library in DependencyContext.Default.RuntimeLibraries)
+            {
+                foreach (var assemblyName in library.GetDefaultAssemblyNames(DependencyContext.Default))
+                {
+                    Load(assemblyName);
+                }
+            }
+        }
 
         /// <summary>
         /// 删除临时文件
@@ -191,7 +196,8 @@ namespace Xakep.Migrate
                 if (databaseCreator is IRelationalDatabaseCreator)
                 {
                     var modelDiffer = serviceProvider.GetService<IMigrationsModelDiffer>();
-                    var sqlGenerator = serviceProvider.GetService<IMigrationsSqlGenerator>();
+                    var sqlGeneratorDependencies = serviceProvider.GetService<MigrationsSqlGeneratorDependencies>();
+                    var sqlGenerator = new Xakep.EntityFrameworkCore.Migrations.MigrationsSqlGenerator(sqlGeneratorDependencies);
 
                     var operations = modelDiffer.GetDifferences(null, dbcon.Model);
                     if (operations.Count > 0)
