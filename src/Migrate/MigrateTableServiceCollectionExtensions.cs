@@ -17,7 +17,7 @@ namespace Xakep.Migrate
             return Opt.Services;
         }
 
-        public static IServiceCollection AddMigrateTable(this IServiceCollection services,Action<DbContextOptionsBuilder> optionBuilder, string MigrateName, Action<ModelBuilder> OnModelCreating)
+        public static IServiceCollection AddMigrateTable(this IServiceCollection services,Action<DbContextOptionsBuilder> optionBuilder, string MigrateName, Action<ModelBuilder> OnModelCreating, bool ObjectNameLowerCase = false)
         {
             if (string.IsNullOrWhiteSpace(MigrateName) || OnModelCreating == null)
                 throw new Exception("not null");
@@ -27,7 +27,7 @@ namespace Xakep.Migrate
 
             new MigrateTable(new MigrateTableOptions() {
                 DbOptions = Opt.Options
-            }).Migrate(MigrateName,OnModelCreating);
+            }).Migrate(MigrateName,OnModelCreating,ObjectNameLowerCase);
 
             return Opt.Services;
         }
