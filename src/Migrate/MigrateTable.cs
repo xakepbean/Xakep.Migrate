@@ -93,7 +93,7 @@ namespace Xakep.Migrate
 
                     var modelDiffer = serviceProvider.GetService<IMigrationsModelDiffer>();
                     var sqlGeneratorDependencies = serviceProvider.GetService<MigrationsSqlGeneratorDependencies>();
-                    var sqlGenerator = new Xakep.EntityFrameworkCore.Migrations.MigrationsSqlGenerator(sqlGeneratorDependencies, ObjectNameLowerCase);
+                    var sqlGenerator = serviceProvider.GetService<IMigrationsSqlGenerator>(); // new Xakep.EntityFrameworkCore.Migrations.MigrationsSqlGenerator(sqlGeneratorDependencies, ObjectNameLowerCase);
 
                     var operations = modelDiffer.GetDifferences(lastModel, newModel);
                     if (operations.Count <= 0)
@@ -118,7 +118,7 @@ namespace Xakep.Migrate
                     
                     var modelSnapshot = generator.GenerateSnapshot(
                         ModelSnapshotNamespace, context.GetType(),
-                        ModelSnapshotClassPrefix + DateTime.UtcNow.Ticks, context.Model);
+                        ModelSnapshotClassPrefix + DateTime.UtcNow.Ticks, newModel);
 
 
                     var history = new MigrateTableHistory(MigrateName,modelSnapshot);
@@ -197,7 +197,7 @@ namespace Xakep.Migrate
                 {
                     var modelDiffer = serviceProvider.GetService<IMigrationsModelDiffer>();
                     var sqlGeneratorDependencies = serviceProvider.GetService<MigrationsSqlGeneratorDependencies>();
-                    var sqlGenerator = new Xakep.EntityFrameworkCore.Migrations.MigrationsSqlGenerator(sqlGeneratorDependencies);
+                    var sqlGenerator = serviceProvider.GetService<IMigrationsSqlGenerator>(); //new Xakep.EntityFrameworkCore.Migrations.MigrationsSqlGenerator(sqlGeneratorDependencies);
 
                     var operations = modelDiffer.GetDifferences(null, dbcon.Model);
                     if (operations.Count > 0)
